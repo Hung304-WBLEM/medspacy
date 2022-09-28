@@ -80,12 +80,43 @@ def visualize_ent(doc, context=True, sections=True, jupyter=True, colors=None):
             for title in section_titles:
                 colors[title] = "#dee0e3"
         ents_display_data, _ = zip(*ents_data)
-        viz_data = [{"text": doc.text, "ents": ents_display_data,}]
+        viz_data = [{"text": doc.text, "ents": ents_display_data, }]
 
         options = {
             "colors": colors,
         }
     return displacy.render(viz_data, style="ent", manual=True, options=options, jupyter=jupyter)
+
+
+def visualize_span(doc, jupyter=True, colors=None):
+    ents_data = []
+
+    for target in doc.spans["sc"]:
+        ent_data = {
+            "start": target.start_char,
+            "end": target.end_char,
+            "label": target.label_.upper(),
+        }
+        ents_data.append((ent_data, "ent"))
+
+    if colors is None:
+        labels = set()
+        section_titles = set()
+        for (ent_data, ent_type) in ents_data:
+            if ent_type in ("ent", "modifier"):
+                labels.add(ent_data["label"])
+            elif ent_type == "section":
+                section_titles.add(ent_data["label"])
+        colors = _create_color_mapping(labels)
+        for title in section_titles:
+            colors[title] = "#dee0e3"
+    ents_display_data, _ = zip(*ents_data)
+    viz_data = [{"text": doc.text, "ents": ents_display_data, }]
+
+    options = {
+        "colors": colors,
+    }
+    return displacy.render(doc, style="span", options=options)
 
 
 def _create_color_mapping(labels):
@@ -149,7 +180,7 @@ def visualize_dep(doc, jupyter=True):
             token_data.pop(idx + 1)
 
         # Lower the index of the following tokens
-        for other_data in token_data[idx + 1 :]:
+        for other_data in token_data[idx + 1:]:
             other_data["index"] -= len(span) - 1
 
     dep_data = {"words": token_data, "arcs": []}
@@ -170,7 +201,6 @@ def visualize_dep(doc, jupyter=True):
 
 class MedspaCyVisualizerWidget:
     def __init__(self, docs):
-
         """Create an IPython Widget Box displaying medspaCy's visualizers.
         The widget allows selecting visualization style ("Ent", "Dep", or "Both")
         and a slider for selecting the index of docs.
@@ -200,7 +230,8 @@ class MedspaCyVisualizerWidget:
             readout_format="d",
         )
         self.radio = widgets.RadioButtons(options=["Ent", "Dep", "Both"])
-        self.layout = widgets.Layout(display="flex", flex_flow="column", align_items="stretch", width="100%")
+        self.layout = widgets.Layout(
+            display="flex", flex_flow="column", align_items="stretch", width="100%")
         self.radio.observe(self._change_handler)
         self.slider.observe(self._change_handler)
         self.next_button = widgets.Button(description="Next")
